@@ -3,17 +3,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scrollMap = L.map('scrollMap', {
     crs: L.CRS.Simple,
     minZoom: 0,
-    maxZoom: 7
+    maxZoom: 7,
+    maxBounds: [[-500, -500], [2500, 3500]], // Prevents panning into invalid regions
+    maxBoundsViscosity: 1.0
   });
 
+  const imageBounds = [[0, 0], [2000, 3000]];
+  
   L.tileLayer('peutinger_map_scroll_tiles/{z}/{x}/{y}.webp', {
     minZoom: 0,
     maxZoom: 7,
-    tms: true
+    tms: true,
+    noWrap: true,
+    bounds: imageBounds // Restricts tile requests strictly to valid file boundaries
   }).addTo(scrollMap);
 
-  const scrollBounds = [[0, 0], [2000, 3000]]; 
-  scrollMap.fitBounds(scrollBounds);
+  scrollMap.fitBounds(imageBounds);
 
   // 2. Initialize Right Map (World Map Raster Tiles)
   const worldMap = L.map('worldMap').setView([20, 0], 2);
@@ -27,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const response = await fetch('locations.geojson');
   const data = await response.json();
   const selectEl = document.getElementById('placeSelect');
-  const searchInput = document.getElementById('searchInput'); // Optional search input element
+  const searchInput = document.getElementById('searchInput');
 
   // Function to synchronously update both maps and open popups
   function selectLocation(feature, index) {
@@ -115,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // 6. Optional Search / Filter Input Handler (if <input id="searchInput"> exists in HTML)
+  // 6. Optional Search / Filter Input Handler
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase();
