@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
   // 1. Initialize Left Map (Tiled Scroll Map using L.CRS.Simple & TMS tiles)
-  const imageHeight = 2000;
-  const imageWidth = 3000;
+  const imageHeight = 1196;
+  const imageWidth = 25551;
   const imageBounds = [[0, 0], [imageHeight, imageWidth]];
 
   const scrollMap = L.map('scrollMap', {
@@ -106,8 +106,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       layer.bindPopup(`
         <b>${props.latinplacename_english || 'Unknown Place'}</b><br> is now :<br>
         <b>${props.address_english || 'World Location'}</b><br>
-        Longitude : ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
-        Latitude : ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}<br>
+        GPS X: ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
+        GPS Y: ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}<br>
         Place Reference Number : ${props.Place_Reference_Number || 'N/A'}
       `);
       layer.on('click', () => {
