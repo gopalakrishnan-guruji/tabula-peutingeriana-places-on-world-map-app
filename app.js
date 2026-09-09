@@ -103,8 +103,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       layer.bindPopup(`
         <b>${props.latinplacename_english || 'Unknown Place'}</b><br> is now :<br>
         <b>${props.address_english || 'World Location'}</b><br>
-        GPS X: ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
-        GPS Y: ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}<br>
+        Longitude : ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
+        Latitude : ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}<br>
         Place Reference Number : ${props.Place_Reference_Number || 'N/A'}
       `);
       layer.on('click', () => {
