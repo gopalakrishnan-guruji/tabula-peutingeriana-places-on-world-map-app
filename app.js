@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     maxZoom: 7
   });
 
-  L.tileLayer('scroll_tiles/{z}/{x}/{y}.webp', {
+  L.tileLayer('peutinger_map_scroll_tiles/{z}/{x}/{y}.webp', {
     minZoom: 0,
     maxZoom: 7,
     tms: true
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 2. Initialize Right Map (World Map Raster Tiles)
   const worldMap = L.map('worldMap').setView([20, 0], 2);
-  L.tileLayer('tiles/{z}/{x}/{y}.webp', {
+  L.tileLayer('natural_earth_tiles/{z}/{x}/{y}.webp', {
     minZoom: 0,
     maxZoom: 7,
     tms: false
