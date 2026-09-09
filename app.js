@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", async () => {
   // 1. Initialize Left Map (Tiled Scroll Map using L.CRS.Simple & TMS tiles)
-  const imageBounds = [[0, 0], [2000, 3000]];
+  const imageHeight = 2000;
+  const imageWidth = 3000;
+  const imageBounds = [[0, 0], [imageHeight, imageWidth]];
 
   const scrollMap = L.map('scrollMap', {
     crs: L.CRS.Simple,
@@ -40,8 +42,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const props = feature.properties;
     selectEl.value = index;
 
-    // A. Update Scroll Map ([y, x] pixel coordinates)
-    const scrollCoords = [props.y_scroll_map, props.x_scroll_map];
+    // A. Update Scroll Map (Inverting Y-axis: imageHeight - y to match top-left origin)
+    const scrollCoords = [imageHeight - props.y_scroll_map, props.x_scroll_map];
     scrollMap.setView(scrollCoords, 2);
 
     // B. Update World Map ([latitude, longitude] using 4326 CRS coordinates)
@@ -76,7 +78,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scrollGeoJsonLayer = L.geoJSON(data, {
     pointToLayer: (feature, latlng) => {
       const props = feature.properties;
-      return L.marker([props.y_scroll_map, props.x_scroll_map]);
+      // Invert Y coordinate so top-left of image corresponds to top-left of Leaflet view
+      return L.marker([imageHeight - props.y_scroll_map, props.x_scroll_map]);
     },
     onEachFeature: (feature, layer) => {
       const props = feature.properties;
