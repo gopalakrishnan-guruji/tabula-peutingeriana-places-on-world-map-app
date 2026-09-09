@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dual Map Viewer - Scroll & World Map</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: #f4f4f4;
+    }
+    header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    header label {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    header input, header select, header button {
+      padding: 6px 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    header button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    header button:hover {
+      background-color: #2980b9;
+    }
+    .maps-container {
+      display: flex;
+      flex: 1;
+      width: 100%;
+      height: calc(100vh - 60px);
+    }
+    .map-panel {
+      flex: 1;
+      height: 100%;
+      border-right: 2px solid #ddd;
+    }
+    .map-panel:last-child {
+      border-right: none;
+    }
+    @media (max-width: 768px) {
+      .maps-container {
+        flex-direction: column;
+      }
+      .map-panel {
+        height: 50%;
+        border-right: none;
+        border-bottom: 2px solid #ddd;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Controls Header -->
+  <header>
+    <div>
+      <label for="searchInput">Search: </label>
+      <input type="text" id="searchInput" placeholder="Search name or address...">
+    </div>
+    <div>
+      <label for="placeSelect">Location: </label>
+      <select id="placeSelect"></select>
+    </div>
+    <button id="showBtn">Show Location</button>
+  </header>
+
+  <!-- Side-by-Side Maps Container -->
+  <div class="maps-container">
+    <div id="scrollMap" class="map-panel"></div>
+    <div id="worldMap" class="map-panel"></div>
+  </div>
+
+  <!-- Leaflet JavaScript -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <!-- Application Logic (app.js inline) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 1. Initialize Left Map (Tiled Scroll Map using L.CRS.Simple & TMS tiles)
+      const scrollMap = L.map('scrollMap', {
+        crs: L.CRS.Simple,
+        minZoom: 0,
+        maxZoom: 7
+      });
+
+      L.tileLayer('scroll_tiles/{z}/{x}/{y}.webp', {
+        minZoom: 0,
+        maxZoom: 7,
+        tms: true
+      }).addTo(scrollMap);
+
+      const scrollBounds = [[0, 0], [2000, 3000]]; 
+      scrollMap.fitBounds(scrollBounds);
+
+      // 2. Initialize Right Map (World Map Raster Tiles)
+      const worldMap = L.map('worldMap').setView([20, 0], 2);
+      L.tileLayer('tiles/{z}/{x}/{y}.webp', {
+        minZoom: 0,
+        maxZoom: 7,
+        tms: false
+      }).addTo(worldMap);
+
+      // 3. Load GeoJSON Data & Populate Dropdown
+      const response = await fetch('locations.geojson');
+      const data = await response.json();
+      const selectEl = document.getElementById('placeSelect');
+      const searchInput = document.getElementById('searchInput');
+
+      // Function to synchronously update both maps and open popups
+      function selectLocation(feature, index) {
+        const props = feature.properties;
+        selectEl.value = index;
+
+        // A. Update Scroll Map ([y, x] pixel coordinates)
+        const scrollCoords = [props.y_scroll_map, props.x_scroll_map];
+        scrollMap.setView(scrollCoords, 2);
+
+        // B. Update World Map ([latitude, longitude] using 4326 CRS coordinates)
+        const worldCoords = [props.y_true_world_4326crs, props.x_true_world_4326crs];
+        worldMap.setView(worldCoords, 4);
+
+        // Sync popups across both maps
+        scrollGeoJsonLayer.eachLayer(layer => {
+          if (layer.feature === feature) layer.openPopup();
+        });
+        worldGeoJsonLayer.eachLayer(layer => {
+          if (layer.feature === feature) layer.openPopup();
+        });
+      }
+
+      // Populate dropdown using latinplacename_english
+      function populateDropdown(featuresToDisplay = data.features) {
+        selectEl.innerHTML = '';
+        featuresToDisplay.forEach((feature) => {
+          const originalIndex = data.features.indexOf(feature);
+          const props = feature.properties;
+          const option = document.createElement('option');
+          option.value = originalIndex;
+          option.textContent = props.latinplacename_english || `Place ${props.Place_Reference_Number || originalIndex}`;
+          selectEl.appendChild(option);
+        });
+      }
+
+      populateDropdown();
+
+      // 4. Add GeoJSON layers with dedicated panel property mappings
+      const scrollGeoJsonLayer = L.geoJSON(data, {
+        pointToLayer: (feature, latlng) => {
+          const props = feature.properties;
+          return L.marker([props.y_scroll_map, props.x_scroll_map]);
+        },
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          layer.bindPopup(`
+            <b>${props.latinplacename_english || 'Unknown Place'}</b><br>
+            Ref: ${props.Place_Reference_Number || 'N/A'}<br>
+            Segment: ${props.map_segment_number || 'N/A'}<br>
+            Slice: ${props.vertical_slice_number || 'N/A'} | Serial: ${props.serial_place_number || 'N/A'}
+          `);
+          layer.on('click', () => {
+            const index = data.features.indexOf(feature);
+            selectLocation(feature, index);
+          });
+        }
+      }).addTo(scrollMap);
+
+      const worldGeoJsonLayer = L.geoJSON(data, {
+        pointToLayer: (feature, latlng) => {
+          const props = feature.properties;
+          return L.marker([props.y_true_world_4326crs, props.x_true_world_4326crs]);
+        },
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          layer.bindPopup(`
+            <b>${props.address_english || 'World Location'}</b><br>
+            GPS X: ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
+            GPS Y: ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}
+          `);
+          layer.on('click', () => {
+            const index = data.features.indexOf(feature);
+            selectLocation(feature, index);
+          });
+        }
+      }).addTo(worldMap);
+
+      // 5. Handle Dropdown Change / "Show" Button Click
+      document.getElementById('showBtn').addEventListener('click', () => {
+        const selectedIndex = selectEl.value;
+        const selectedFeature = data.features[selectedIndex];
+        if (selectedFeature) {
+          selectLocation(selectedFeature, selectedIndex);
+        }
+      });
+
+      // 6. Search / Filter Input Handler
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase();
+          const filtered = data.features.filter(f => {
+            const name = (f.properties.latinplacename_english || '').toLowerCase();
+            const address = (f.properties.address_english || '').toLowerCase();
+            return name.includes(query) || address.includes(query);
+          });
+          populateDropdown(filtered);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
