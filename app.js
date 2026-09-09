@@ -1,21 +1,22 @@
 document.addEventListener("DOMContentLoaded", async () => {
   // 1. Initialize Left Map (Tiled Scroll Map using L.CRS.Simple & TMS tiles)
+  const imageBounds = [[0, 0], [2000, 3000]];
+
   const scrollMap = L.map('scrollMap', {
     crs: L.CRS.Simple,
     minZoom: 0,
     maxZoom: 7,
-    maxBounds: [[-500, -500], [2500, 3500]], // Prevents panning into invalid regions
+    maxBounds: imageBounds,
     maxBoundsViscosity: 1.0
   });
 
-  const imageBounds = [[0, 0], [2000, 3000]];
-  
   L.tileLayer('peutinger_map_scroll_tiles/{z}/{x}/{y}.webp', {
     minZoom: 0,
     maxZoom: 7,
     tms: true,
     noWrap: true,
-    bounds: imageBounds // Restricts tile requests strictly to valid file boundaries
+    bounds: imageBounds,
+    errorTileUrl: ''
   }).addTo(scrollMap);
 
   scrollMap.fitBounds(imageBounds);
@@ -81,9 +82,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const props = feature.properties;
       layer.bindPopup(`
         <b>${props.latinplacename_english || 'Unknown Place'}</b><br>
-        Ref: ${props.Place_Reference_Number || 'N/A'}<br>
-        Slice: ${props.vertical_slice_number || 'N/A'}<br>
-        Segment: ${props.map_segment_number || 'N/A'} | Serial: ${props.serial_place_number || 'N/A'}
+        Place Reference Number : ${props.Place_Reference_Number || 'N/A'}<br>
+        Vertical Slice Number : ${props.vertical_slice_number || 'N/A'}<br>
+        Map Segment Number : ${props.map_segment_number || 'N/A'} | Serial Place Number : ${props.serial_place_number || 'N/A'}
       `);
       layer.on('click', () => {
         const index = data.features.indexOf(feature);
@@ -100,9 +101,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     onEachFeature: (feature, layer) => {
       const props = feature.properties;
       layer.bindPopup(`
+        <b>${props.latinplacename_english || 'Unknown Place'}</b><br> is now :<br>
         <b>${props.address_english || 'World Location'}</b><br>
         GPS X: ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
-        GPS Y: ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}
+        GPS Y: ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}<br>
+        Place Reference Number : ${props.Place_Reference_Number || 'N/A'}
       `);
       layer.on('click', () => {
         const index = data.features.indexOf(feature);
