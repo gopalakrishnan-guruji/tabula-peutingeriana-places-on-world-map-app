@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Map Viewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      font-family: Arial, sans-serif;
+      background: #111;
+      overflow: hidden;
+    }
+    #controls {
+      padding: 10px;
+      background: #222;
+      border-bottom: 1px solid #444;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 1001;
+    }
+    #searchInput {
+      padding: 6px 10px;
+      border: 1px solid #555;
+      background: #2a2a2a;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 13px;
+      width: 180px;
+      outline: none;
+    }
+    #searchInput:focus {
+      border-color: #3b82f6;
+    }
+    #placeSelect {
+      flex: 1;
+      padding: 6px;
+      border: 1px solid #555;
+      background: #2a2a2a;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    #showBtn {
+      padding: 6px 12px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #showBtn:hover {
+      background: #1d4ed8;
+    }
+    #mapContainer {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+    }
+    #worldMap {
+      width: 100%;
+      height: 100%;
+    }
+    #infoBox {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: rgba(20, 20, 20, 0.95);
+      color: #f3f4f6;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #555;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 320px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="controls">
+    <input type="text" id="searchInput" placeholder="Search from first letter..." autocomplete="off" />
+    <select id="placeSelect"></select>
+    <button id="showBtn">Show</button>
+  </div>
+
+  <div id="mapContainer">
+    <div id="worldMap"></div>
+    <div id="infoBox"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const channel = new BroadcastChannel('peutinger_sync');
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const worldMap = L.map('worldMap').setView([20, 0], 2);
+      L.tileLayer('natural_earth_tiles/{z}/{x}/{y}.webp', {
+        minZoom: 5,
+        maxZoom: 7,
+        tms: false
+      }).addTo(worldMap);
+
+      const response = await fetch('locations.geojson');
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+
+      const selectEl = document.getElementById('placeSelect');
+      const searchInput = document.getElementById('searchInput');
+      const infoBox = document.getElementById('infoBox');
+      let layersMap = new Map();
+      let lastSelectedLayer = null;
+
+      function highlightAndSelect(layer, refNum) {
+        if (lastSelectedLayer) {
+          lastSelectedLayer.setStyle({
+            fillColor: '#875ca3',
+            color: '#dc2350',
+            weight: 2.5,
+            radius: 4.0,
+            fillOpacity: 1
+          });
+        }
+        layer.setStyle({
+          fillColor: '#ef4444', 
+          color: '#6122dd',
+          weight: 2,
+          radius: 7,
+          fillOpacity: 1
+        });
+        lastSelectedLayer = layer;
+      }
+
+      function selectLocation(feature) {
+        const props = feature.properties;
+        const refNum = props.Place_Reference_Number;
+        
+        const worldCoords = [props.y_true_world_4326crs, props.x_true_world_4326crs];
+        worldMap.setView(worldCoords, 4);
+
+        const targetLayer = layersMap.get(refNum);
+        if (targetLayer) {
+          highlightAndSelect(targetLayer, refNum);
+        }
+
+        infoBox.innerHTML = `
+          <b>${props.latinplacename_english || 'Unknown Place'}</b><br>
+          Place Reference Number : ${refNum || 'N/A'}<br>
+          is now :<br>
+          <b>${props.address_english || 'World Location'}</b><br>
+          Longitude : ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
+          Latitude : ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}
+        `;
+        infoBox.style.display = 'block';
+
+        channel.postMessage({ type: 'SELECT_PLACE', placeRef: refNum });
+      }
+
+      function populateDropdown(featuresToDisplay = data.features) {
+        selectEl.innerHTML = '';
+        featuresToDisplay.forEach((feature) => {
+          const props = feature.properties;
+          const option = document.createElement('option');
+          option.value = props.Place_Reference_Number;
+          option.textContent = props.latinplacename_english || `Place ${props.Place_Reference_Number}`;
+          selectEl.appendChild(option);
+        });
+      }
+
+      populateDropdown();
+
+      const worldGeoJsonLayer = L.geoJSON(data, {
+        pointToLayer: (feature, latlng) => {
+          const props = feature.properties;
+          return L.circleMarker([props.y_true_world_4326crs, props.x_true_world_4326crs], {
+            radius: 4.0,
+            fillColor: '#FFFF00',
+            color: '#ea1550',
+            weight: 2.5,
+            opacity: 1,
+            fillOpacity: 1
+          });
+        },
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          const refNum = props.Place_Reference_Number;
+          if (refNum) layersMap.set(refNum, layer);
+
+          layer.on('click', () => {
+            selectEl.value = refNum;
+            selectLocation(feature);
+          });
+        }
+      }).addTo(worldMap);
+
+      document.getElementById('showBtn').addEventListener('click', () => {
+        const selectedRef = selectEl.value;
+        const feature = data.features.find(f => f.properties.Place_Reference_Number == selectedRef);
+        if (feature) selectLocation(feature);
+      });
+
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase().trim();
+          if (query.length === 0) {
+            populateDropdown(data.features);
+            return;
+          }
+          const filtered = data.features.filter(f => {
+            const name = (f.properties.latinplacename_english || '').toLowerCase();
+            const ref = String(f.properties.Place_Reference_Number || '');
+            return name.startsWith(query) || ref.startsWith(query);
+          });
+          populateDropdown(filtered);
+        });
+      }
+
+      channel.onmessage = (event) => {
+        if (event.data.type === 'SELECT_PLACE') {
+          const feature = data.features.find(f => f.properties.Place_Reference_Number == event.data.placeRef);
+          if (feature) {
+            selectEl.value = event.data.placeRef;
+            worldMap.setView([feature.properties.y_true_world_4326crs, feature.properties.x_true_world_4326crs], 4);
+            const targetLayer = layersMap.get(event.data.placeRef);
+            if (targetLayer && targetLayer !== lastSelectedLayer) {
+              highlightAndSelect(targetLayer, event.data.placeRef);
+              
+              const props = feature.properties;
+              const refNum = props.Place_Reference_Number;
+              infoBox.innerHTML = `
+                Place Reference Number : ${refNum || 'N/A'}<br>
+                <b>${props.latinplacename_english || 'Unknown Place'}</b> is now :<br>
+                <b>${props.address_english || 'World Location'}</b><br>
+                Longitude : ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
+                Latitude : ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}
+              `;
+              infoBox.style.display = 'block';
+            }
+          }
+        }
+      };
+    });
+  </script>
+</body>
+</html>

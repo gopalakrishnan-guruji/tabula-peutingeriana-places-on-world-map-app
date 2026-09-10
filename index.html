@@ -3,234 +3,490 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dual Map Viewer - Scroll & World Map</title>
-  
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-  
+  <title>Tabula Peutingeriana - Scroll Map & World View</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    * {
-      box-sizing: border-box;
+    body, html {
       margin: 0;
       padding: 0;
-    }
-    body {
+      width: 100%;
+      height: 100%;
       font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      background-color: #f4f4f4;
+      overflow: hidden;
     }
-    header {
-      background-color: #2c3e50;
-      color: white;
-      padding: 10px 20px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    #scrollMap {
+      width: 100%;
+      height: 100%;
+      background: #111;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    #statusBox {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
       z-index: 1000;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      max-width: 400px;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
     }
-    header label {
-      font-size: 14px;
-      font-weight: bold;
+    #searchContainer {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1001;
+      width: 320px;
+      background: rgba(20, 20, 20, 0.9);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
-    header input, header select, header button {
-      padding: 6px 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
+    #searchInput {
+      width: 100%;
+      padding: 8px 12px;
+      box-sizing: border-box;
+      background: #2a2a2a;
+      border: 1px solid #555;
+      color: #fff;
       border-radius: 4px;
+      font-size: 13px;
+      outline: none;
     }
-    header button {
-      background-color: #3498db;
-      color: white;
-      border: none;
+    #searchInput:focus {
+      border-color: #3b82f6;
+    }
+    #searchResults {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 6px;
+    }
+    .search-item {
+      padding: 6px 8px;
+      color: #ccc;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 3px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .search-item:hover {
+      background: #333;
+      color: #fff;
+    }
+    #toggleContainer {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      font-size: 12px;
       cursor: pointer;
     }
-    header button:hover {
-      background-color: #2980b9;
+    #toggleContainer input {
+      cursor: pointer;
     }
-    .maps-container {
+    #sliceContainer {
+      margin-top: 10px;
+      border-top: 1px solid #444;
+      padding-top: 8px;
+    }
+    #sliceLabel {
+      font-size: 12px;
+      color: #ccc;
+      margin-bottom: 4px;
+    }
+    #sliceRow {
       display: flex;
+      gap: 6px;
+    }
+    #sliceInput {
       flex: 1;
+      padding: 6px 8px;
+      box-sizing: border-box;
+      background: #2a2a2a;
+      border: 1px solid #555;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+    }
+    #sliceInput:focus {
+      border-color: #3b82f6;
+    }
+    #sliceGoBtn {
+      padding: 6px 10px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    #sliceGoBtn:hover {
+      background: #1d4ed8;
+    }
+    #worldPanel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 600px;
+      height: 600px;
+      background: #222;
+      border: 2px solid #444;
+      border-radius: 8px;
+      z-index: 1000;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #panelHeader {
+      background: #333;
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+    }
+    #panelToggle {
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #panelToggle:hover {
+      color: #fff;
+    }
+    #worldIframe {
       width: 100%;
-      height: calc(100vh - 60px);
+      flex-grow: 1;
+      border: none;
+      background: #111;
     }
-    .map-panel {
-      flex: 1;
-      height: 100%;
-      border-right: 2px solid #ddd;
+
+    /* Cartographic Custom Popup Banner Styling */
+    .leaflet-popup-content-wrapper {
+      background: rgba(20, 20, 20, 0.95) !important;
+      color: #f3f4f6 !important;
+      border: 1px solid #555 !important;
+      border-radius: 6px !important;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7) !important;
+      padding: 4px;
     }
-    .map-panel:last-child {
-      border-right: none;
+    .leaflet-popup-content {
+      margin: 10px 14px !important;
+      font-size: 13px;
+      line-height: 1.5;
     }
-    @media (max-width: 768px) {
-      .maps-container {
-        flex-direction: column;
-      }
-      .map-panel {
-        height: 50%;
-        border-right: none;
-        border-bottom: 2px solid #ddd;
-      }
+    .leaflet-popup-tip-container {
+      width: 30px;
+      height: 20px;
+    }
+    .leaflet-popup-tip {
+      background: transparent !important;
+      border: none !important;
+      border-top: 20px solid rgba(20, 20, 20, 0.95) !important;
+      border-left: 15px solid transparent !important;
+      border-right: 15px solid transparent !important;
+      box-shadow: none !important;
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Controls Header -->
-  <header>
-    <div>
-      <label for="searchInput">Search: </label>
-      <input type="text" id="searchInput" placeholder="Search name or address...">
-    </div>
-    <div>
-      <label for="placeSelect">Location: </label>
-      <select id="placeSelect"></select>
-    </div>
-    <button id="showBtn">Show Location</button>
-  </header>
+  <div id="scrollMap"></div>
+  <div id="statusBox">Loading map tiles and features...</div>
 
-  <!-- Side-by-Side Maps Container -->
-  <div class="maps-container">
-    <div id="scrollMap" class="map-panel"></div>
-    <div id="worldMap" class="map-panel"></div>
+  <div id="searchContainer">
+    <input type="text" id="searchInput" placeholder="Search from first letter..." autocomplete="off">
+    <div id="searchResults"></div>
+    <label id="toggleContainer">
+      <input type="checkbox" id="toggleIcons" checked> Click to Show All 2922 Places On Peutinger Map
+    </label>
+    <div id="sliceContainer">
+      <div id="sliceLabel">Go to the Map's Vertical Slice Number :</div>
+      <div id="sliceRow">
+        <input type="number" id="sliceInput" placeholder="1 to 100" min="1" max="100">
+        <button id="sliceGoBtn">Go</button>
+      </div>
+    </div>
   </div>
 
-  <!-- Leaflet JavaScript -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <div id="worldPanel">
+    <div id="panelHeader">
+      <span>Exact Locations :  Click this button - to Close or + to Open this World Map View 👉</span>
+      <button id="panelToggle" onclick="toggleWorldPanel()">_</button>
+    </div>
+    <iframe id="worldIframe" src="world-map.html"></iframe>
+  </div>
 
-  <!-- Application Logic (app.js inline) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    const statusBox = document.getElementById('statusBox');
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    const toggleIcons = document.getElementById('toggleIcons');
+    const sliceInput = document.getElementById('sliceInput');
+    const sliceGoBtn = document.getElementById('sliceGoBtn');
+    const channel = new BroadcastChannel('peutinger_sync');
+
+    function toggleWorldPanel() {
+      const iframe = document.getElementById('worldIframe');
+      const panel = document.getElementById('worldPanel');
+      const btn = document.getElementById('panelToggle');
+      if (iframe.style.display === 'none') {
+        iframe.style.display = 'block';
+        panel.style.height = '700px';
+        btn.innerText = '_';
+      } else {
+        iframe.style.display = 'none';
+        panel.style.height = 'auto';
+        btn.innerText = '+';
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
-      // 1. Initialize Left Map (Tiled Scroll Map using L.CRS.Simple & TMS tiles)
-      const scrollMap = L.map('scrollMap', {
-        crs: L.CRS.Simple,
-        minZoom: 0,
-        maxZoom: 7
-      });
+      const originalImageHeight = 1196; 
+      const tileGridHeight = 1280;      
+      const imageWidth = 25551;
+      
+      const topPaddingOffset = tileGridHeight - originalImageHeight; 
+      const imageBounds = [[0, 0], [tileGridHeight, imageWidth]];
+      const iframeExtraWidth = 950;
 
-      L.tileLayer('peutinger_map_scroll_tiles/{z}/{x}/{y}.webp', {
-        minZoom: 0,
-        maxZoom: 7,
-        tms: true
-      }).addTo(scrollMap);
-
-      const scrollBounds = [[0, 0], [2000, 3000]]; 
-      scrollMap.fitBounds(scrollBounds);
-
-      // 2. Initialize Right Map (World Map Raster Tiles)
-      const worldMap = L.map('worldMap').setView([20, 0], 2);
-      L.tileLayer('natural_earth_tiles/{z}/{x}/{y}.webp', {
-        minZoom: 0,
-        maxZoom: 7,
-        tms: false
-      }).addTo(worldMap);
-
-      // 3. Load GeoJSON Data & Populate Dropdown
-      const response = await fetch('locations.geojson');
-      const data = await response.json();
-      const selectEl = document.getElementById('placeSelect');
-      const searchInput = document.getElementById('searchInput');
-
-      // Function to synchronously update both maps and open popups
-      function selectLocation(feature, index) {
-        const props = feature.properties;
-        selectEl.value = index;
-
-        // A. Update Scroll Map ([y, x] pixel coordinates)
-        const scrollCoords = [props.y_scroll_map, props.x_scroll_map];
-        scrollMap.setView(scrollCoords, 2);
-
-        // B. Update World Map ([latitude, longitude] using 4326 CRS coordinates)
-        const worldCoords = [props.y_true_world_4326crs, props.x_true_world_4326crs];
-        worldMap.setView(worldCoords, 4);
-
-        // Sync popups across both maps
-        scrollGeoJsonLayer.eachLayer(layer => {
-          if (layer.feature === feature) layer.openPopup();
+      try {
+        const customCRS = L.extend({}, L.CRS.Simple, {
+          transformation: new L.Transformation(1, 0, 1, 0),
+          scale: function(zoom) {
+            return Math.pow(2, zoom - 7);
+          },
+          zoom: function(scale) {
+            return Math.log(scale) / Math.LN2 + 7;
+          }
         });
-        worldGeoJsonLayer.eachLayer(layer => {
-          if (layer.feature === feature) layer.openPopup();
+
+        const scrollMap = L.map('scrollMap', {
+          crs: customCRS,
+          minZoom: 7,
+          maxZoom: 7,
+          zoomControl: false,
+          maxBounds: [[-500, -500], [tileGridHeight + 500, imageWidth + iframeExtraWidth]],
+          maxBoundsViscosity: 0.8
         });
-      }
 
-      // Populate dropdown using latinplacename_english
-      function populateDropdown(featuresToDisplay = data.features) {
-        selectEl.innerHTML = '';
-        featuresToDisplay.forEach((feature) => {
-          const originalIndex = data.features.indexOf(feature);
-          const props = feature.properties;
-          const option = document.createElement('option');
-          option.value = originalIndex;
-          option.textContent = props.latinplacename_english || `Place ${props.Place_Reference_Number || originalIndex}`;
-          selectEl.appendChild(option);
+        const tileLayer = L.tileLayer('peutinger_map_scroll_tiles/{z}/{x}/{y}.webp', {
+          minZoom: 7,
+          maxZoom: 7,
+          minNativeZoom: 7,
+          maxNativeZoom: 7,
+          tileSize: 256,
+          noWrap: true,
+          bounds: imageBounds,
+          errorTileUrl: ''
         });
-      }
 
-      populateDropdown();
-
-      // 4. Add GeoJSON layers with dedicated panel property mappings
-      const scrollGeoJsonLayer = L.geoJSON(data, {
-        pointToLayer: (feature, latlng) => {
-          const props = feature.properties;
-          return L.marker([props.y_scroll_map, props.x_scroll_map]);
-        },
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
-          layer.bindPopup(`
-            <b>${props.latinplacename_english || 'Unknown Place'}</b><br>
-            Ref: ${props.Place_Reference_Number || 'N/A'}<br>
-            Segment: ${props.map_segment_number || 'N/A'}<br>
-            Slice: ${props.vertical_slice_number || 'N/A'} | Serial: ${props.serial_place_number || 'N/A'}
-          `);
-          layer.on('click', () => {
-            const index = data.features.indexOf(feature);
-            selectLocation(feature, index);
+        tileLayer.getTileUrl = function(coords) {
+          const invertedY = 4 - coords.y; 
+          return L.TileLayer.prototype.getTileUrl.call(this, {
+            z: coords.z,
+            x: coords.x,
+            y: invertedY
           });
-        }
-      }).addTo(scrollMap);
+        };
 
-      const worldGeoJsonLayer = L.geoJSON(data, {
-        pointToLayer: (feature, latlng) => {
-          const props = feature.properties;
-          return L.marker([props.y_true_world_4326crs, props.x_true_world_4326crs]);
-        },
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
-          layer.bindPopup(`
-            <b>${props.address_english || 'World Location'}</b><br>
-            GPS X: ${props.GPS_X_Base || ''} ${props.GPS_X_Direction || ''}<br>
-            GPS Y: ${props.GPS_Y_Base || ''} ${props.GPS_Y_Direction || ''}
-          `);
-          layer.on('click', () => {
-            const index = data.features.indexOf(feature);
-            selectLocation(feature, index);
+        tileLayer.addTo(scrollMap);
+        scrollMap.fitBounds(imageBounds);
+
+        const response = await fetch('locations.geojson');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        statusBox.innerText = `Loaded map tiles and ${data.features.length} features successfully!`;
+
+        let layersMap = new Map();
+        let lastSelectedLayer = null;
+
+        function highlightAndSelect(layer, refNum) {
+          if (lastSelectedLayer && scrollMap.hasLayer(lastSelectedLayer)) {
+            lastSelectedLayer.setStyle({
+              fillColor: '#1d4ed8',
+              color: '#2CFF05',
+              weight: 1.5,
+              radius: 4.5,
+              fillOpacity: 1
+            });
+          }
+          layer.setStyle({
+            fillColor: '#ef4444', 
+            color: '#ffffff',
+            weight: 2,
+            radius: 7,
+            fillOpacity: 1
           });
-        }
-      }).addTo(worldMap);
+          lastSelectedLayer = layer;
+          
+          const isPanelOpen = document.getElementById('worldIframe').style.display !== 'none';
+          const rightPadding = isPanelOpen ? 940 : 50;
 
-      // 5. Handle Dropdown Change / "Show" Button Click
-      document.getElementById('showBtn').addEventListener('click', () => {
-        const selectedIndex = selectEl.value;
-        const selectedFeature = data.features[selectedIndex];
-        if (selectedFeature) {
-          selectLocation(selectedFeature, selectedIndex);
-        }
-      });
+          scrollMap.setView(layer.getLatLng(), 7, {
+            paddingBottomRight: [rightPadding, 50],
+            paddingTopLeft: [50, 50]
+          });
 
-      // 6. Search / Filter Input Handler
-      if (searchInput) {
+          layer.openPopup();
+          channel.postMessage({ type: 'SELECT_PLACE', placeRef: refNum });
+        }
+
+        function jumpToSlice(sliceNumVal) {
+          const targetSlice = Number(sliceNumVal);
+          if (isNaN(targetSlice)) return;
+
+          const matchingFeatures = data.features.filter(f => Number(f.properties.vertical_slice_number) === targetSlice);
+
+          if (matchingFeatures.length > 0) {
+            let sumX = 0;
+            matchingFeatures.forEach(f => {
+              const x = f.properties.x_scroll_map !== undefined ? f.properties.x_scroll_map : 0;
+              sumX += x;
+            });
+            const avgX = sumX / matchingFeatures.length;
+            const centerY = tileGridHeight / 2;
+
+            const isPanelOpen = document.getElementById('worldIframe').style.display !== 'none';
+            const rightPadding = isPanelOpen ? 940 : 50;
+
+            scrollMap.setView([centerY, avgX], 7, {
+              paddingBottomRight: [rightPadding, 50],
+              paddingTopLeft: [50, 50]
+            });
+
+            statusBox.innerText = `Vertical Slice ${targetSlice} is moved to the center of the Screen. (${matchingFeatures.length} places found)`;
+            statusBox.style.opacity = '1';
+            setTimeout(() => { statusBox.style.opacity = '0'; }, 9000);
+          } else {
+            statusBox.innerText = `There are Only 100 Vertical Slices. Enter a Number from 1 to 100 only`;
+            statusBox.style.opacity = '1';
+            setTimeout(() => { statusBox.style.opacity = '0'; }, 9000);
+          }
+        }
+
+        sliceGoBtn.addEventListener('click', () => {
+          jumpToSlice(sliceInput.value);
+        });
+
+        sliceInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            jumpToSlice(sliceInput.value);
+          }
+        });
+
+        const featuresLayerGroup = L.geoJSON(data, {
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties;
+            const rawY = props.y_scroll_map !== undefined ? props.y_scroll_map : 0;
+            const x = props.x_scroll_map !== undefined ? props.x_scroll_map : 0;
+            const y = rawY + topPaddingOffset;
+            
+            return L.circleMarker([y, x], {
+              radius: 4.5,
+              fillColor: '#2CFF05', 
+              color: '#ef4444',     
+              weight: 2.5,
+              opacity: 1,
+              fillOpacity: 1
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const refNum = props.Place_Reference_Number;
+            if (refNum) layersMap.set(refNum, layer);
+
+            layer.bindPopup(`
+              <b>${props.latinplacename_english || 'Place'}</b><br>
+              Place Reference Number : ${refNum || 'N/A'}<br>
+              Vertical Slice Number : ${props.vertical_slice_number || 'N/A'}<br>
+              Map Segment Number : ${props.map_segment_number || 'N/A'}
+            `, {
+              offset: [0, -5]
+            });
+
+            layer.on('click', () => {
+              highlightAndSelect(layer, refNum);
+            });
+          }
+        }).addTo(scrollMap);
+
+        toggleIcons.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            scrollMap.addLayer(featuresLayerGroup);
+          } else {
+            scrollMap.removeLayer(featuresLayerGroup);
+          }
+        });
+
         searchInput.addEventListener('input', (e) => {
-          const query = e.target.value.toLowerCase();
-          const filtered = data.features.filter(f => {
+          const query = e.target.value.toLowerCase().trim();
+          searchResults.innerHTML = '';
+          
+          // Trigger instantly when at least 1 character is entered
+          if (query.length < 1) return;
+
+          const matches = data.features.filter(f => {
             const name = (f.properties.latinplacename_english || '').toLowerCase();
-            const address = (f.properties.address_english || '').toLowerCase();
-            return name.includes(query) || address.includes(query);
+            const ref = String(f.properties.Place_Reference_Number || '');
+            return name.startsWith(query) || ref.startsWith(query);
+          }).slice(0, 15);
+
+          matches.forEach(feat => {
+            const props = feat.properties;
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            div.innerHTML = `<b>${props.latinplacename_english || 'Unnamed'}</b> (Ref: ${props.Place_Reference_Number || 'N/A'})`;
+            div.onclick = () => {
+              const targetLayer = layersMap.get(props.Place_Reference_Number);
+              if (targetLayer) {
+                if (!toggleIcons.checked) {
+                  toggleIcons.checked = true;
+                  scrollMap.addLayer(featuresLayerGroup);
+                }
+                highlightAndSelect(targetLayer, props.Place_Reference_Number);
+                searchInput.value = '';
+                searchResults.innerHTML = '';
+              }
+            };
+            searchResults.appendChild(div);
           });
-          populateDropdown(filtered);
         });
+
+        channel.onmessage = (event) => {
+          if (event.data.type === 'SELECT_PLACE') {
+            const targetLayer = layersMap.get(event.data.placeRef);
+            if (targetLayer && targetLayer !== lastSelectedLayer) {
+              if (!toggleIcons.checked) {
+                toggleIcons.checked = true;
+                scrollMap.addLayer(featuresLayerGroup);
+              }
+              highlightAndSelect(targetLayer, event.data.placeRef);
+            }
+          }
+        };
+
+        setTimeout(() => { statusBox.style.opacity = '0'; }, 3500);
+
+      } catch (err) {
+        statusBox.innerText = `Error: ${err.message}`;
+        statusBox.style.color = '#ff6b6b';
       }
     });
   </script>
