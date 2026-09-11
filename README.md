@@ -1,8 +1,13 @@
-# Tabula Peutingeriana: Interactive Scroll Map & Modern World View
+# Tabula Peutingeriana Map App
+**Interactive Peutinger Map Scroll with World Map**
+## EBook Companion
+This App can be used as a Companion for the Book **Geographical Localization of Historical Places on The Peutinger Map**, [EBook ISBN 9789334471038].
 
 🔗 **[View Live App](https://gopalakrishnan-guruji.github.io/tabula-peutingeriana-places-on-world-map-app/)**
 
-An interactive web application exploring the **Tabula Peutingeriana** (the ancient Roman road network map) alongside a modern geographic world view. This project maps all **2,922 historical locations** from the ancient scroll onto both a continuous scrollable custom coordinate system and a contemporary Leaflet world map with real-time cross-window synchronization.
+🔗 **[Read Complete Book](https://archive.org/details/geographical-localization-of-historical-places-on-the-peutinger-map-ebook-isbn-9789334471038/mode/2up)**
+
+An interactive web application exploring the **Tabula Peutingeriana** (the ancient Roman road network map) alongside a modern geographic world view. This App project maps all **2,922 historical locations** from the **Tabula Peutingeriana** onto both a continuous scrollable custom coordinate system and a contemporary Leaflet world map with real-time cross-window synchronization.
 
 ## Features
 
@@ -20,7 +25,3 @@ An interactive web application exploring the **Tabula Peutingeriana** (the ancie
 * `locations.geojson` - Dataset containing all 2,922 historical places and their corresponding coordinates.
 * `peutinger_map_scroll_tiles/` - Tile directory for the custom scroll view.
 * `natural_earth_tiles/` - Tile directory for the modern world view.
-
-## Getting Started
-
-To run this application locally, serve the project folder using a local static file server (such as the Live Server extension in VS Code) to ensure proper loading of GeoJSON data and map tiles.
