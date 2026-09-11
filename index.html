@@ -36,6 +36,24 @@
       pointer-events: none;
       transition: opacity 0.5s ease;
     }
+    /* Style for the view counter widget */
+    #viewCounterWidget {
+      position: absolute;
+      bottom: 20px;
+      right: 140px; 
+      z-index: 1000;
+      background: rgba(20, 20, 20, 0.9);
+      color: #aaa;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      font-size: 11px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    #viewCounterWidget span {
+      color: #3b82f6;
+      font-weight: bold;
+    }
     #searchContainer {
       position: absolute;
       top: 20px;
@@ -207,6 +225,11 @@
 
   <div id="scrollMap"></div>
   <div id="statusBox">Loading map tiles and features...</div>
+  
+  <!-- Page View Counter Widget -->
+  <div id="viewCounterWidget">
+    Number of Visitors :  <span id="viewCount">...</span>
+  </div>
 
   <div id="searchContainer">
     <input type="text" id="searchInput" placeholder="Search from first letter..." autocomplete="off">
@@ -241,6 +264,19 @@
     const sliceGoBtn = document.getElementById('sliceGoBtn');
     const channel = new BroadcastChannel('peutinger_sync');
 
+    // Safe Fetch and increment page views with fallback
+    fetch('https://api.counterapi.dev/v1/tabula-peutingeriana/page-views/up')
+      .then(response => response.json())
+      .then(data => {
+        // CounterAPI returns format like { count: 123 } or { value: 123 }
+        const count = data.count !== undefined ? data.count : (data.value !== undefined ? data.value : '1');
+        document.getElementById('viewCount').innerText = count;
+      })
+      .catch(err => {
+        console.warn('View counter fallback active:', err);
+        document.getElementById('viewCount').innerText = '1+';
+      });
+
     function toggleWorldPanel() {
       const iframe = document.getElementById('worldIframe');
       const panel = document.getElementById('worldPanel');
@@ -258,7 +294,7 @@
 
     document.addEventListener("DOMContentLoaded", async () => {
       const originalImageHeight = 1196; 
-      const tileGridHeight = 1280;      
+      const tileGridHeight = 1280;     
       const imageWidth = 25551;
       
       const topPaddingOffset = tileGridHeight - originalImageHeight; 
@@ -439,7 +475,6 @@
           const query = e.target.value.toLowerCase().trim();
           searchResults.innerHTML = '';
           
-          // Trigger instantly when at least 1 character is entered
           if (query.length < 1) return;
 
           const matches = data.features.filter(f => {
