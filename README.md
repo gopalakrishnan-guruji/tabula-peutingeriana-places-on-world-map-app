@@ -1,11 +1,11 @@
 # Tabula Peutingeriana Map App
 **Interactive Peutinger Map Scroll with World Map**
 ## EBook Companion
-This App can be used as a Companion for the Book **Geographical Localization of Historical Places on The Peutinger Map**, [EBook ISBN 9789334471038].
+This App can be used as a Companion for the Book **Geographical Localization of Historical Places on The Peutinger Map** [EBook - ISBN 9789334471038].
 
 🔗 **[View Live App](https://gopalakrishnan-guruji.github.io/tabula-peutingeriana-places-on-world-map-app/)**
 
-🔗 **[Read Complete Book](https://archive.org/details/geographical-localization-of-historical-places-on-the-peutinger-map-ebook-isbn-9789334471038/mode/2up)**
+🔗 **[Read The Complete EBook @archive.org](https://archive.org/details/geographical-localization-of-historical-places-on-the-peutinger-map-ebook-isbn-9789334471038/mode/2up)**
 
 An interactive web application exploring the **Tabula Peutingeriana** (the ancient Roman road network map) alongside a modern geographic world view. This App project maps all **2,922 historical locations** from the **Tabula Peutingeriana** onto both a continuous scrollable custom coordinate system and a contemporary Leaflet world map with real-time cross-window synchronization.
 
