@@ -263,19 +263,17 @@
     const sliceInput = document.getElementById('sliceInput');
     const sliceGoBtn = document.getElementById('sliceGoBtn');
     const channel = new BroadcastChannel('peutinger_sync');
-
-    // Reliable public counter endpoint that increments on every page view
-    fetch('https://countapi.mileshilliard.com/api/v1/hit/tabula_peutingeriana_map/views')
+// Reliable Abacus page view counter
+    fetch('https://abacus.jasoncameron.dev/hit/tabula-peutingeriana-map/views')
       .then(response => response.json())
       .then(data => {
-        const count = data.value !== undefined ? data.value : (data.count !== undefined ? data.count : '1');
+        const count = data.value !== undefined ? data.value : '1';
         document.getElementById('viewCount').innerText = count;
       })
       .catch(err => {
-        console.warn('Counter fetch error:', err);
+        console.warn('Counter error:', err);
         document.getElementById('viewCount').innerText = '1+';
       });
-
     function toggleWorldPanel() {
       const iframe = document.getElementById('worldIframe');
       const panel = document.getElementById('worldPanel');
