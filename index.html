@@ -264,16 +264,15 @@
     const sliceGoBtn = document.getElementById('sliceGoBtn');
     const channel = new BroadcastChannel('peutinger_sync');
 
-    // Safe Fetch and increment page views with fallback
-    fetch('https://api.counterapi.dev/v1/tabula-peutingeriana/page-views/up')
+    // Reliable public counter endpoint that increments on every page view
+    fetch('https://countapi.mileshilliard.com/api/v1/hit/tabula_peutingeriana_map/views')
       .then(response => response.json())
       .then(data => {
-        // CounterAPI returns format like { count: 123 } or { value: 123 }
-        const count = data.count !== undefined ? data.count : (data.value !== undefined ? data.value : '1');
+        const count = data.value !== undefined ? data.value : (data.count !== undefined ? data.count : '1');
         document.getElementById('viewCount').innerText = count;
       })
       .catch(err => {
-        console.warn('View counter fallback active:', err);
+        console.warn('Counter fetch error:', err);
         document.getElementById('viewCount').innerText = '1+';
       });
 
